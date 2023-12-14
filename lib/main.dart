@@ -20,6 +20,12 @@ Future<void> main() async {
     }
   });
 
+  await Permission.notification.isDenied.then((valueOfPermission) {
+    if (valueOfPermission) {
+      Permission.notification.request();
+    }
+  });
+
   runApp(const MyApp());
 }
 
