@@ -1,8 +1,7 @@
 // ignore_for_file: unnecessary_import
 
 import 'dart:async';
-import 'dart:convert';
-import 'dart:typed_data';
+import 'package:driver_uber_app/methods/map_theme_methods.dart';
 import 'package:driver_uber_app/pushNotification/push_notification_system.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
@@ -11,7 +10,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_geofire/flutter_geofire.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
-
 import '../global/global_var.dart';
 
 class HomePage extends StatefulWidget {
@@ -25,35 +23,21 @@ class _HomePageState extends State<HomePage> {
   final Completer<GoogleMapController> googleMapCompleterController =
       Completer<GoogleMapController>();
   GoogleMapController? controllerGoogleMap;
-  Position? currentPositionOfUser;
+  Position? currentPositionOfDriver;
   Color colorToShow = Colors.green;
   String titleToShow = "GO ONLINE NOW";
   bool isDriverAvailable = false;
   DatabaseReference? newTripRequestReference;
-
-  void updateMapTheme(GoogleMapController controller) {
-    getJsonFileFromThemes("themes/night_style.json")
-        .then((value) => setGoogleMapStyle(value, controller));
-  }
-
-  Future<String> getJsonFileFromThemes(String mapStylePath) async {
-    ByteData byteData = await rootBundle.load(mapStylePath);
-    var list = byteData.buffer
-        .asUint8List(byteData.offsetInBytes, byteData.lengthInBytes);
-    return utf8.decode(list);
-  }
-
-  setGoogleMapStyle(String googleMapStyle, GoogleMapController controller) {
-    controller.setMapStyle(googleMapStyle);
-  }
+  MapThemeMethods themeMethods = MapThemeMethods();
 
   getCurrentLiveLocationOfDriver() async {
     Position positionOfUser = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.bestForNavigation);
-    currentPositionOfUser = positionOfUser;
+    currentPositionOfDriver = positionOfUser;
+    driverCurrentPosition = currentPositionOfDriver;
 
     LatLng positionOfUserInLatLng = LatLng(
-        currentPositionOfUser!.latitude, currentPositionOfUser!.longitude);
+        currentPositionOfDriver!.latitude, currentPositionOfDriver!.longitude);
 
     CameraPosition cameraPosition =
         CameraPosition(target: positionOfUserInLatLng, zoom: 15);
@@ -67,8 +51,8 @@ class _HomePageState extends State<HomePage> {
 
     Geofire.setLocation(
       FirebaseAuth.instance.currentUser!.uid,
-      currentPositionOfUser!.latitude,
-      currentPositionOfUser!.longitude,
+      currentPositionOfDriver!.latitude,
+      currentPositionOfDriver!.longitude,
     );
 
     newTripRequestReference = FirebaseDatabase.instance
@@ -84,13 +68,13 @@ class _HomePageState extends State<HomePage> {
   setAndGetLocationUpdates() {
     positionStreamHomePage =
         Geolocator.getPositionStream().listen((Position position) {
-      currentPositionOfUser = position;
+      currentPositionOfDriver = position;
 
       if (isDriverAvailable == true) {
         Geofire.setLocation(
           FirebaseAuth.instance.currentUser!.uid,
-          currentPositionOfUser!.latitude,
-          currentPositionOfUser!.longitude,
+          currentPositionOfDriver!.latitude,
+          currentPositionOfDriver!.longitude,
         );
       }
 
@@ -113,10 +97,12 @@ class _HomePageState extends State<HomePage> {
   initializePushNotificationSystem() {
     PushNotificationSystem notificationSystem = PushNotificationSystem();
     notificationSystem.generateDeviceRegistrationToken();
+    notificationSystem.startListeningForNewNotification(context);
   }
 
   @override
   void initState() {
+    // TODO: implement initState
     super.initState();
 
     initializePushNotificationSystem();
@@ -135,7 +121,7 @@ class _HomePageState extends State<HomePage> {
             initialCameraPosition: googlePlexInitialPosition,
             onMapCreated: (GoogleMapController mapController) {
               controllerGoogleMap = mapController;
-              updateMapTheme(controllerGoogleMap!);
+              themeMethods.updateMapTheme(controllerGoogleMap!);
 
               googleMapCompleterController.complete(controllerGoogleMap);
 

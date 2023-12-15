@@ -1,7 +1,6 @@
 import 'package:google_maps_flutter/google_maps_flutter.dart';
 
-class TripDetails
-{
+class TripDetails {
   String? tripID;
 
   LatLng? pickUpLatLng;
@@ -12,7 +11,6 @@ class TripDetails
 
   String? userName;
   String? userPhone;
-
 
   TripDetails({
     this.tripID,
